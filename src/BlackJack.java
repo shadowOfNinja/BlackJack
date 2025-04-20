@@ -58,7 +58,7 @@ public class BlackJack {
     int boardHeight = boardWidth;
 
     //card size
-    int cardWidth = 110; //ratio should be 1/1.4
+    int cardWidth = 110; //ratio should be 1:1.4
     int cardHeight = 154;
 
     JFrame frame = new JFrame("Black Jack");
@@ -113,6 +113,8 @@ public class BlackJack {
                     g.setFont(new Font("Arial", Font.PLAIN, 30));
                     g.setColor(Color.white);
                     g.drawString(message, 220, 250);
+
+                    nextHandButton.setEnabled(true);
                 }
             }
             catch (Exception e) {
@@ -123,6 +125,7 @@ public class BlackJack {
     JPanel buttonPanel = new JPanel();
     JButton hitButton = new JButton("Hit");
     JButton stayButton = new JButton("Stay");
+    JButton nextHandButton = new JButton("Next Hand");
 
     BlackJack() {
         startGame();
@@ -142,6 +145,9 @@ public class BlackJack {
         buttonPanel.add(hitButton);
         stayButton.setFocusable(false);
         buttonPanel.add(stayButton);
+        nextHandButton.setFocusable(false);
+        nextHandButton.setEnabled(false);
+        buttonPanel.add(nextHandButton);
         frame.add(buttonPanel, BorderLayout.SOUTH);
 
         hitButton.addActionListener(new ActionListener() {
@@ -173,6 +179,19 @@ public class BlackJack {
                     dealerAceCount += card.isAce() ? 1 : 0;
                     dealerHand.add(card);
                 }
+                gamePanel.repaint();
+            }
+        });
+
+        nextHandButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                nextHandButton.setEnabled(false);
+                hitButton.setEnabled(true);
+                stayButton.setEnabled(true);
+                playerHand.clear();
+                dealerHand.clear();
+                startGame();
                 gamePanel.repaint();
             }
         });
@@ -270,6 +289,6 @@ public class BlackJack {
 
 /*
  * To do:
- * - add a button to restart the game / new hand
  * - add money for betting
+ * - add the ability for the player to split pairs
  */
