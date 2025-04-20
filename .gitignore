@@ -1,0 +1,3 @@
+*.class
+bin/cards/*.png
+.vscode/settings.json
