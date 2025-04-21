@@ -47,11 +47,18 @@ public class BlackJack {
     ArrayList<Card> dealerHand;
     int dealerSum;
     int dealerAceCount;
+    int dealerBankroll = 1500; // dealer's bankroll
+    int dealerBet = 0; // dealer's bet
 
     //player
     ArrayList<Card> playerHand;
     int playerSum;
     int playerAceCount;
+    int playerBankroll = 1000; // player's bankroll
+    int playerBet = 0; // player's bet
+
+    int pot = 0; // total bet
+    String message = ""; // message to display
 
     // window
     int boardWidth = 600;
@@ -89,7 +96,7 @@ public class BlackJack {
                     g.drawImage(cardImage, 20 + (cardWidth + 5) * i, 320, cardWidth, cardHeight, null);
                 }
 
-                //draw text
+                //draw win condition text
                 if (!stayButton.isEnabled()) {
                     dealerSum = reduceDealerAce();
                     playerSum = reducePlayerAce();
@@ -97,25 +104,56 @@ public class BlackJack {
                     System.out.println(dealerSum);
                     System.out.println(playerSum);
 
-                    String message = "";
                     if (playerSum > 21) {
                         message = "You lose!";
+                        dealerBankroll += pot; // dealer wins the bet
                     } else if (dealerSum > 21) {
                         message = "You win!";
+                        playerBankroll += pot; // player wins the bet
                     } else if (playerSum > dealerSum) {
                         message = "You win!";
+                        playerBankroll += pot; // player wins the bet
                     } else if (playerSum < dealerSum) {
                         message = "You lose!";
+                        dealerBankroll += pot; // dealer wins the bet
                     } else {
                         message = "Draw!";
+                        playerBankroll += pot / 2; // player gets back half the bet
+                        dealerBankroll += pot / 2; // dealer gets back half the bet
+                        dealerBankroll += pot % 2; // dealer gets back the extra dollar if the value is odd
+                    }
+                    pot = 0; // reset the pot
+                    dealerBet = 0; // reset the dealer's bet
+                    playerBet = 0; // reset the player's bet
+
+                    //determine if either player or dealer is out of money
+                    if (dealerBankroll <= 0) {
+                        message = "Dealer out of funds! You win!";
+                    } else if (playerBankroll <= 0) {
+                        message = "No more funds! Dealer wins!";
                     }
 
                     g.setFont(new Font("Arial", Font.PLAIN, 30));
                     g.setColor(Color.white);
-                    g.drawString(message, 220, 250);
+                    g.drawString(message, 200, 250);
 
                     nextHandButton.setEnabled(true);
                 }
+                //draw player and dealer bankroll
+                //dealer's bankroll
+                g.setFont(new Font("Arial", Font.PLAIN, 20));
+                g.setColor(Color.white);
+                g.drawString("Dealer: $" + String.valueOf(dealerBankroll), 5, 200);
+
+                //player's bankroll
+                g.setFont(new Font("Arial", Font.PLAIN, 20));
+                g.setColor(Color.white);
+                g.drawString("Player: $" + String.valueOf(playerBankroll), 5, 300);
+
+                //draw the total bet
+                g.setFont(new Font("Arial", Font.PLAIN, 20));
+                g.setColor(Color.white);
+                g.drawString("Bet: $" + String.valueOf(pot), 5, 250);
             }
             catch (Exception e) {
                 e.printStackTrace();
@@ -126,6 +164,8 @@ public class BlackJack {
     JButton hitButton = new JButton("Hit");
     JButton stayButton = new JButton("Stay");
     JButton nextHandButton = new JButton("Next Hand");
+    JLabel playerBetLabel = new JLabel("Bet: $");
+    JSpinner playerBetSpinner = new JSpinner(new SpinnerNumberModel(50, 10, 1000, 10)); // betting spinner
 
     BlackJack() {
         startGame();
@@ -141,6 +181,9 @@ public class BlackJack {
         gamePanel.setBackground(new Color(53, 101, 77));
         frame.add(gamePanel);
 
+        buttonPanel.add(playerBetLabel);
+        playerBetSpinner.setFocusable(false);
+        buttonPanel.add(playerBetSpinner);
         hitButton.setFocusable(false);
         buttonPanel.add(hitButton);
         stayButton.setFocusable(false);
@@ -191,6 +234,12 @@ public class BlackJack {
                 stayButton.setEnabled(true);
                 playerHand.clear();
                 dealerHand.clear();
+                if (dealerBankroll <= 0) {
+                    dealerBankroll = 1500; // reset the dealer's bankroll
+                }
+                if (playerBankroll <= 0) {
+                    playerBankroll = 1000; // reset the player's bankroll
+                }
                 startGame();
                 gamePanel.repaint();
             }
@@ -203,6 +252,30 @@ public class BlackJack {
         //deck
         buildDeck();
         shuffleDeck();
+
+        message = ""; // reset the message
+
+        //betting
+        playerBet = (int) playerBetSpinner.getValue(); // get the player's bet from the spinner
+        if (playerBet > playerBankroll) {
+            playerBet = playerBankroll; // set the bet to the player's bankroll if it's greater
+        } else if (playerBet < 10) {
+            playerBet = 10; // set the bet to the minimum if it's less than 10
+        }
+        playerBetSpinner.setValue(playerBet); // update the spinner value
+        System.out.println("PLAYER BET: " + playerBet);
+        dealerBet = playerBet; // dealer's bet is the same as player's bet
+        dealerBet = modifyValue(dealerBet); // modify the dealer's bet randomly
+        if (dealerBet > dealerBankroll) {
+            dealerBet = dealerBankroll; // set the bet to the dealer's bankroll if it's greater
+        } else if (dealerBet < 10) {
+            dealerBet = 10; // set the bet to the minimum if it's less than 10
+        }
+        System.out.println("DEALER BET: " + dealerBet);
+
+        dealerBankroll -= dealerBet; // deduct the bet from the dealer's bankroll
+        playerBankroll -= playerBet; // deduct the bet from the player's bankroll
+        pot = dealerBet + playerBet; // total bet
 
         //dealer
         dealerHand = new ArrayList<Card>();
@@ -285,10 +358,18 @@ public class BlackJack {
         }
         return dealerSum;
     }
+
+    public int modifyValue(int value) {
+        Random random = new Random();
+        int multiplier = random.nextInt(5) + 1; // Random number between 1 and 5
+        int change = multiplier * 5; // Multiple of 5
+        boolean add = random.nextBoolean(); // Randomly decide to add or subtract
+
+        return add ? value + change : value - change;
+    }
 }
 
 /*
  * To do:
- * - add money for betting
  * - add the ability for the player to split pairs
  */
